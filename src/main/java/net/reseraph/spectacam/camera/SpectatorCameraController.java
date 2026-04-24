@@ -169,7 +169,7 @@ public class SpectatorCameraController {
                 smoothYaw     = cachedTarget.getYaw();
                 smoothInitialized = true;
                 everLocated   = true;
-                sendHUD(client, "§a[SpectaCam] Attached to §e" + targetName);
+                sendHUD(client, "§aAttached to §e" + targetName);
             } else if (wasMissing) {
                 // Coming back from idle/offline: begin a rubbery transition.
                 // Crucially we do NOT reset smoothInitialized — the existing
@@ -177,7 +177,7 @@ public class SpectatorCameraController {
                 orbit.reset();
                 idle.reset();
                 transitionTicks = Math.max(transitionTicks, SpectaCamConfig.get().transitionRampTicks);
-                sendHUD(client, "§a[SpectaCam] Re-attached to §e" + targetName);
+                sendHUD(client, "§aRe-attached to §e" + targetName);
             }
 
             missingTickCount   = 0;
@@ -236,7 +236,7 @@ public class SpectatorCameraController {
                 }
 
                 transitionTicks = SpectaCamConfig.get().transitionRampTicks;
-                sendHUD(client, "§7[SpectaCam] Target lost — idle camera active");
+                sendHUD(client, "§7Target lost — idle camera active");
 
                 // First re-attach attempt fires the moment idle kicks in.
                 attemptReAttach(client);
@@ -381,10 +381,10 @@ public class SpectatorCameraController {
         if (gm != GameMode.SPECTATOR) {
             try {
                 client.getNetworkHandler().sendChatCommand("gamemode spectator");
-                sendHUD(client, "§7[SpectaCam] requested spectator mode…");
+                sendHUD(client, "§7requested spectator mode…");
             } catch (Exception e) {
                 SpectaCam.LOGGER.warn("[SpectaCam] /gamemode dispatch failed: {}", e.getMessage());
-                sendHUD(client, "§c[SpectaCam] server refused /gamemode — need OP?");
+                sendHUD(client, "§cserver refused /gamemode — need OP?");
             }
             // Queue /spectate a few ticks later to give the server time to
             // apply the gamemode change.
