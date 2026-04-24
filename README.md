@@ -1,4 +1,4 @@
-# SpecCam
+# SpectaCam
 
 A Fabric 1.21.x client-side mod that locks your camera onto a named player with configurable modes — then gracefully drifts into a slow creative idle fly when the target is offline or dead.
 
@@ -95,7 +95,7 @@ or press **F8**.
 
 ## Behavior when target is dead / offline
 
-When the target player dies or disconnects, SpecCam waits a 3-second grace period (covers normal respawn animations), then enters **idle mode**:
+When the target player dies or disconnects, SpectaCam waits a 3-second grace period (covers normal respawn animations), then enters **idle mode**:
 
 - Camera seeds its starting position exactly where it last was and gently lerps upward toward cruising altitude over ~20–30 seconds. No instant elevator jump.
 - Slowly drifts 140–160 blocks above the terrain (configurable).
@@ -150,7 +150,7 @@ Edit `.minecraft/config/spectacam.json`. A fresh file is written with defaults o
 ## Changelog
 
 ### 1.14.1
-- Fixed: target player going invisible in THIRD_PERSON and ORBIT modes. Minecraft was culling the camera-focused entity because its internal `thirdPerson` flag stayed false even though SpecCam had pulled the camera away from the target's eye. CameraMixin now writes that flag to match SpecCam's mode after every camera update.
+- Fixed: target player going invisible in THIRD_PERSON and ORBIT modes. Minecraft was culling the camera-focused entity because its internal `thirdPerson` flag stayed false even though SpectaCam had pulled the camera away from the target's eye. CameraMixin now writes that flag to match SpectaCam's mode after every camera update.
 
 ### 1.14.0
 - Command shortened to `/spectacam <playerName>` (legacy `/spectacam target <name>` still works).

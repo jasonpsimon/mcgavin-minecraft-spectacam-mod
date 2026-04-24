@@ -1,7 +1,7 @@
 package net.reseraph.spectacam.camera;
 
 import net.minecraft.util.math.Vec3d;
-import net.reseraph.spectacam.config.SpecCamConfig;
+import net.reseraph.spectacam.config.SpectaCamConfig;
 
 import java.util.Random;
 
@@ -33,7 +33,7 @@ public class IdleCameraController {
      * Seed the idle camera at exactly the given world position.
      *
      * Intentionally does NOT snap upward to cruising altitude — the tick()
-     * height-lerp eases toward {@link SpecCamConfig#idleHeightMin}..idleHeightMax
+     * height-lerp eases toward {@link SpectaCamConfig#idleHeightMin}..idleHeightMax
      * over several seconds, which combined with the controller's
      * transition-smoothing ramp produces a soft rubbery "rise" rather than
      * an instant elevator jump when the target is lost.
@@ -47,11 +47,11 @@ public class IdleCameraController {
 
     public void tick() {
         if (!initialized) {
-            pos = new Vec3d(0, SpecCamConfig.get().idleHeightMin, 0);
+            pos = new Vec3d(0, SpectaCamConfig.get().idleHeightMin, 0);
             initialized = true;
         }
 
-        SpecCamConfig cfg = SpecCamConfig.get();
+        SpectaCamConfig cfg = SpectaCamConfig.get();
 
         // Count down to next direction change
         ticksUntilDirectionChange--;
@@ -105,7 +105,7 @@ public class IdleCameraController {
 
     private void randomizeNextChange() {
         // Interval configurable via config (idleDirectionChangeMinSec/MaxSec)
-        SpecCamConfig cfg = SpecCamConfig.get();
+        SpectaCamConfig cfg = SpectaCamConfig.get();
         int minTicks = Math.max(20, Math.round(cfg.idleDirectionChangeMinSec * 20f));
         int maxTicks = Math.max(minTicks + 1, Math.round(cfg.idleDirectionChangeMaxSec * 20f));
         ticksUntilDirectionChange = minTicks + RANDOM.nextInt(maxTicks - minTicks);

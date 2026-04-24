@@ -4,7 +4,7 @@ import net.minecraft.client.render.Camera;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.BlockView;
-import net.reseraph.spectacam.SpecCam;
+import net.reseraph.spectacam.SpectaCam;
 import net.reseraph.spectacam.camera.CameraMode;
 import net.reseraph.spectacam.camera.SpectatorCameraController;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * Hooks into Camera.update() after Minecraft has finished setting its own
  * position, then overwrites pos/rotation with our computed values when
- * SpecCam is active.
+ * SpectaCam is active.
  *
  * setPos() and setRotation() are used (not raw field writes) so that the
  * camera's internal direction vectors and rotation quaternion stay consistent.
@@ -34,7 +34,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * camera is clearly pulled back behind the player.
  *
  * Fix: after our setPos/setRotation override, write Camera.thirdPerson directly
- * via {@code @Shadow} to match the SpecCam mode. When the mode is not
+ * via {@code @Shadow} to match the SpectaCam mode. When the mode is not
  * FIRST_PERSON we report true, which flips Minecraft's cull to render the
  * target normally.
  */
@@ -50,7 +50,7 @@ public abstract class CameraMixin {
     /**
      * Vanilla's third-person flag. Read by {@code isThirdPerson()} which the
      * world renderer consults to decide whether to draw the camera's focused
-     * entity. Writable via {@code @Shadow} so we can match it to SpecCam's mode.
+     * entity. Writable via {@code @Shadow} so we can match it to SpectaCam's mode.
      */
     @Shadow
     private boolean thirdPerson;
@@ -64,17 +64,42 @@ public abstract class CameraMixin {
             float tickDelta,
             CallbackInfo ci
     ) {
-        SpectatorCameraController ctrl = SpecCam.cameraController;
+        SpectatorCameraController ctrl = SpectaCam.cameraController;
         if (ctrl == null || !ctrl.isActive() || !ctrl.overrideCamera) return;
 
-        Vec3d p = ctrl.cameraPos;
-        setPos(p.x, p.y, p.z);
-        setRotation(ctrl.cameraYaw, ctrl.cameraPitch);
+        // ── v1.14.2 jitter fix ───────────────────────────────────────────────
+        // The controller only updates cameraPos/Pitch/Yaw once per tick (20 Hz).
+        // Minecraft calls Camera.update() once per frame (60+ Hz). Applying the
+        // raw per-tick values produced a 50ms stair-step while the target moved
+        // smoothly via vanilla interpolation. We lerp prev → curr using the
+        // render tickDelta to deliver per-frame motion.
+        float td = tickDelta;
+        if (td < 0f) td = 0f;
+        if (td > 1f) td = 1f;
+
+        Vec3d   prev = ctrl.prevCameraPos;
+        Vec3d   curr = ctrl.cameraPos;
+        double  ix   = prev.x + (curr.x - prev.x) * td;
+        double  iy   = prev.y + (curr.y - prev.y) * td;
+        double  iz   = prev.z + (curr.z - prev.z) * td;
+        float   iyaw = lerpAngle(ctrl.prevCameraYaw,   ctrl.cameraYaw,   td);
+        float   ipit = lerpAngle(ctrl.prevCameraPitch, ctrl.cameraPitch, td);
+
+        setPos(ix, iy, iz);
+        setRotation(iyaw, ipit);
 
         // Flip Minecraft's third-person flag so WorldRenderer stops culling
-        // the camera-focused entity when SpecCam is pulling the camera away
+        // the camera-focused entity when SpectaCam is pulling the camera away
         // from the target's eye position. First-person mode keeps the vanilla
         // "you are inside them, hide their face" behavior.
         this.thirdPerson = (ctrl.getMode() != CameraMode.FIRST_PERSON);
+    }
+
+    /** Shortest-path angle lerp; matches SpectatorCameraController.lerpAngle. */
+    private static float lerpAngle(float from, float to, float t) {
+        float diff = to - from;
+        while (diff >  180f) diff -= 360f;
+        while (diff < -180f) diff += 360f;
+        return from + diff * t;
     }
 }

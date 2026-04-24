@@ -8,7 +8,7 @@ import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
 /**
- * Registers SpecCam keybinds and processes them each tick.
+ * Registers SpectaCam keybinds and processes them each tick.
  *
  * Default bindings:
  *   F7       — cycle camera mode (First Person → Third Person → Orbit)
@@ -55,29 +55,29 @@ public class KeyBindings {
 
     public static void handleInput(MinecraftClient client) {
         while (cycleMode.wasPressed()) {
-            SpecCam.cameraController.cycleMode();
-            sendHUD(client, "Mode: " + SpecCam.cameraController.getMode().getDisplayName());
+            SpectaCam.cameraController.cycleMode();
+            sendHUD(client, "Mode: " + SpectaCam.cameraController.getMode().getDisplayName());
         }
 
         while (zoomIn.wasPressed()) {
-            SpecCam.cameraController.adjustZoom(-1f);
-            sendHUD(client, "Zoom in  (r=" + String.format("%.1f", SpecCam.cameraController.getOrbitRadius()) + ")");
+            SpectaCam.cameraController.adjustZoom(-1f);
+            sendHUD(client, "Zoom in  (r=" + String.format("%.1f", SpectaCam.cameraController.getOrbitRadius()) + ")");
         }
 
         while (zoomOut.wasPressed()) {
-            SpecCam.cameraController.adjustZoom(1f);
-            sendHUD(client, "Zoom out (r=" + String.format("%.1f", SpecCam.cameraController.getOrbitRadius()) + ")");
+            SpectaCam.cameraController.adjustZoom(1f);
+            sendHUD(client, "Zoom out (r=" + String.format("%.1f", SpectaCam.cameraController.getOrbitRadius()) + ")");
         }
 
         while (clearTarget.wasPressed()) {
-            SpecCam.cameraController.setTarget(null);
+            SpectaCam.cameraController.setTarget(null);
             sendHUD(client, "Stopped — target cleared");
         }
     }
 
     private static void sendHUD(MinecraftClient client, String msg) {
         if (client.player != null) {
-            client.player.sendMessage(Text.literal("§b[SpecCam]§r " + msg), true);
+            client.player.sendMessage(Text.literal("§b[SpectaCam]§r " + msg), true);
         }
     }
 }

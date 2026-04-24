@@ -5,11 +5,11 @@ import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
-import net.reseraph.spectacam.SpecCam;
-import net.reseraph.spectacam.config.SpecCamConfig;
+import net.reseraph.spectacam.SpectaCam;
+import net.reseraph.spectacam.config.SpectaCamConfig;
 
 /**
- * Central controller for SpecCam.
+ * Central controller for SpectaCam.
  *
  * Each tick this class:
  *   1. Locates the target player in the client world.
@@ -22,9 +22,9 @@ import net.reseraph.spectacam.config.SpecCamConfig;
  * the camera chases its target. Lower = floatier/rubbery, higher = snappier.
  *
  * During state transitions (grace→idle, idle→tracking) the smoothing factor
- * is temporarily replaced by {@link SpecCamConfig#transitionSmoothing} and
+ * is temporarily replaced by {@link SpectaCamConfig#transitionSmoothing} and
  * ramps back to the configured value over
- * {@link SpecCamConfig#transitionRampTicks} ticks. This produces a deliberate
+ * {@link SpectaCamConfig#transitionRampTicks} ticks. This produces a deliberate
  * "ease out" rubbery feel rather than a uniform linear chase.
  *
  * v1.14.0:
@@ -42,6 +42,16 @@ public class SpectatorCameraController {
     public float   cameraPitch    = 0f;
     public float   cameraYaw      = 0f;
     public boolean overrideCamera = false;
+
+    // ── Previous-tick snapshot (v1.14.2 jitter fix) ──────────────────────────
+    // The controller only advances once per game tick (20 Hz). The game
+    // renders at frame rate (60+ Hz). Without interpolation between ticks the
+    // camera sits frozen while the target keeps moving via vanilla's entity
+    // interpolation, producing visible judder. CameraMixin lerps prev → curr
+    // per frame using the render tickDelta to eliminate that gap.
+    public Vec3d prevCameraPos   = Vec3d.ZERO;
+    public float prevCameraPitch = 0f;
+    public float prevCameraYaw   = 0f;
 
     // ── Smoothed (interpolated) state ─────────────────────────────────────────
     private Vec3d  smoothPos   = Vec3d.ZERO;
@@ -100,7 +110,7 @@ public class SpectatorCameraController {
     private PlayerEntity cachedTarget = null;
 
     public SpectatorCameraController() {
-        SpecCamConfig cfg = SpecCamConfig.get();
+        SpectaCamConfig cfg = SpectaCamConfig.get();
         thirdPersonDistance = cfg.thirdPersonDistance;
         orbit = new OrbitCameraController(cfg.orbitRadius);
     }
@@ -159,22 +169,22 @@ public class SpectatorCameraController {
                 smoothYaw     = cachedTarget.getYaw();
                 smoothInitialized = true;
                 everLocated   = true;
-                sendHUD(client, "§a[SpecCam] Attached to §e" + targetName);
+                sendHUD(client, "§a[SpectaCam] Attached to §e" + targetName);
             } else if (wasMissing) {
                 // Coming back from idle/offline: begin a rubbery transition.
                 // Crucially we do NOT reset smoothInitialized — the existing
                 // smoothed state is what we lerp FROM, giving the rubber-band.
                 orbit.reset();
                 idle.reset();
-                transitionTicks = Math.max(transitionTicks, SpecCamConfig.get().transitionRampTicks);
-                sendHUD(client, "§a[SpecCam] Re-attached to §e" + targetName);
+                transitionTicks = Math.max(transitionTicks, SpectaCamConfig.get().transitionRampTicks);
+                sendHUD(client, "§a[SpectaCam] Re-attached to §e" + targetName);
             }
 
             missingTickCount   = 0;
             reattachTicker     = 0;
             reattachAttempts   = 0;
 
-            SpecCamConfig cfg = SpecCamConfig.get();
+            SpectaCamConfig cfg = SpectaCamConfig.get();
             switch (mode) {
                 case FIRST_PERSON -> {
                     targetPos   = cachedTarget.getCameraPosVec(1.0f);
@@ -225,8 +235,8 @@ public class SpectatorCameraController {
                     smoothInitialized = true;
                 }
 
-                transitionTicks = SpecCamConfig.get().transitionRampTicks;
-                sendHUD(client, "§7[SpecCam] Target lost — idle camera active");
+                transitionTicks = SpectaCamConfig.get().transitionRampTicks;
+                sendHUD(client, "§7[SpectaCam] Target lost — idle camera active");
 
                 // First re-attach attempt fires the moment idle kicks in.
                 attemptReAttach(client);
@@ -271,7 +281,7 @@ public class SpectatorCameraController {
         // Effective smoothing: during a transition, start soft and linearly
         // ramp back up to the configured smoothing. Gives an ease-out feel
         // at both ends of the transition.
-        SpecCamConfig cfg = SpecCamConfig.get();
+        SpectaCamConfig cfg = SpectaCamConfig.get();
         float t;
         int rampMax = Math.max(1, cfg.transitionRampTicks);
         if (transitionTicks > 0) {
@@ -285,6 +295,21 @@ public class SpectatorCameraController {
         smoothPos   = lerpVec(smoothPos, targetPos, t);
         smoothPitch = lerpAngle(smoothPitch, targetPitch, t);
         smoothYaw   = lerpAngle(smoothYaw,   targetYaw,   t);
+
+        // ── Snapshot prev state for per-frame interpolation in CameraMixin ───
+        // On the first publish of an override session, seed prev = smooth so
+        // the mixin's lerp(prev, curr, tickDelta) is a no-op and we don't snap
+        // from a stale cached value (which may be Vec3d.ZERO or the last
+        // position from a prior session).
+        if (overrideCamera) {
+            prevCameraPos   = cameraPos;
+            prevCameraPitch = cameraPitch;
+            prevCameraYaw   = cameraYaw;
+        } else {
+            prevCameraPos   = smoothPos;
+            prevCameraPitch = smoothPitch;
+            prevCameraYaw   = smoothYaw;
+        }
 
         // ── Publish smoothed values for CameraMixin ───────────────────────────
         cameraPos      = smoothPos;
@@ -356,10 +381,10 @@ public class SpectatorCameraController {
         if (gm != GameMode.SPECTATOR) {
             try {
                 client.getNetworkHandler().sendChatCommand("gamemode spectator");
-                sendHUD(client, "§7[SpecCam] requested spectator mode…");
+                sendHUD(client, "§7[SpectaCam] requested spectator mode…");
             } catch (Exception e) {
-                SpecCam.LOGGER.warn("[SpecCam] /gamemode dispatch failed: {}", e.getMessage());
-                sendHUD(client, "§c[SpecCam] server refused /gamemode — need OP?");
+                SpectaCam.LOGGER.warn("[SpectaCam] /gamemode dispatch failed: {}", e.getMessage());
+                sendHUD(client, "§c[SpectaCam] server refused /gamemode — need OP?");
             }
             // Queue /spectate a few ticks later to give the server time to
             // apply the gamemode change.
@@ -379,7 +404,7 @@ public class SpectatorCameraController {
         try {
             nh.sendChatCommand("spectate " + name);
         } catch (Exception e) {
-            SpecCam.LOGGER.warn("[SpecCam] /spectate dispatch failed: {}", e.getMessage());
+            SpectaCam.LOGGER.warn("[SpectaCam] /spectate dispatch failed: {}", e.getMessage());
         }
     }
 
@@ -387,7 +412,7 @@ public class SpectatorCameraController {
     private void attemptReAttach(MinecraftClient client) {
         if (targetName == null) return;
         reattachAttempts++;
-        SpecCam.LOGGER.info("[SpecCam] re-attach attempt #{} → /spectate {}",
+        SpectaCam.LOGGER.info("[SpectaCam] re-attach attempt #{} → /spectate {}",
                 reattachAttempts, targetName);
         dispatchSpectateCommand(client, targetName);
     }
@@ -399,7 +424,7 @@ public class SpectatorCameraController {
     private void sendHUD(MinecraftClient client, String msg) {
         if (client != null && client.player != null) {
             client.player.sendMessage(
-                net.minecraft.text.Text.literal("§b[SpecCam]§r " + msg), true);
+                net.minecraft.text.Text.literal("§b[SpectaCam]§r " + msg), true);
         }
     }
 
@@ -447,7 +472,7 @@ public class SpectatorCameraController {
      * delta < 0 → zoom in (closer), delta > 0 → zoom out (further)
      */
     public void adjustZoom(float delta) {
-        float step = SpecCamConfig.get().zoomStep;
+        float step = SpectaCamConfig.get().zoomStep;
         thirdPersonDistance = Math.max(2f, Math.min(20f, thirdPersonDistance + delta * step));
         orbit.adjustRadius(delta * step);
     }

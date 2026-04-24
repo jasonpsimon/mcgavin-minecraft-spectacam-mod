@@ -10,9 +10,9 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.command.CommandSource;
 import net.minecraft.text.Text;
-import net.reseraph.spectacam.SpecCam;
+import net.reseraph.spectacam.SpectaCam;
 import net.reseraph.spectacam.camera.CameraMode;
-import net.reseraph.spectacam.config.SpecCamConfig;
+import net.reseraph.spectacam.config.SpectaCamConfig;
 
 /**
  * Registers the /spectacam client command tree.
@@ -30,7 +30,7 @@ import net.reseraph.spectacam.config.SpecCamConfig;
  * status/config would collide with the subcommand literals. In practice
  * nobody is. The legacy `/spectacam target &lt;name&gt;` form works for any name.
  */
-public class SpecCamCommand {
+public class SpectaCamCommand {
 
     /**
      * Tab-completes online player names from the client's player list.
@@ -65,9 +65,9 @@ public class SpecCamCommand {
                         .suggests(PLAYER_SUGGESTIONS)
                         .executes(ctx -> {
                             String name = StringArgumentType.getString(ctx, "player");
-                            SpecCam.cameraController.startSpectating(name);
+                            SpectaCam.cameraController.startSpectating(name);
                             ctx.getSource().sendFeedback(
-                                Text.literal("§b[SpecCam]§r Now targeting: §e" + name));
+                                Text.literal("§b[SpectaCam]§r Now targeting: §e" + name));
                             return 1;
                         })
                     )
@@ -78,9 +78,9 @@ public class SpecCamCommand {
                             .suggests(PLAYER_SUGGESTIONS)
                             .executes(ctx -> {
                                 String name = StringArgumentType.getString(ctx, "player");
-                                SpecCam.cameraController.startSpectating(name);
+                                SpectaCam.cameraController.startSpectating(name);
                                 ctx.getSource().sendFeedback(
-                                    Text.literal("§b[SpecCam]§r Now targeting: §e" + name));
+                                    Text.literal("§b[SpectaCam]§r Now targeting: §e" + name));
                                 return 1;
                             })
                         )
@@ -89,9 +89,9 @@ public class SpecCamCommand {
                     // ── /spectacam stop ──────────────────────────────────────
                     .then(ClientCommandManager.literal("stop")
                         .executes(ctx -> {
-                            SpecCam.cameraController.setTarget(null);
+                            SpectaCam.cameraController.setTarget(null);
                             ctx.getSource().sendFeedback(
-                                Text.literal("§b[SpecCam]§r Stopped spectating."));
+                                Text.literal("§b[SpectaCam]§r Stopped spectating."));
                             return 1;
                         })
                     )
@@ -100,25 +100,25 @@ public class SpecCamCommand {
                     .then(ClientCommandManager.literal("mode")
                         .then(ClientCommandManager.literal("first")
                             .executes(ctx -> {
-                                SpecCam.cameraController.setMode(CameraMode.FIRST_PERSON);
+                                SpectaCam.cameraController.setMode(CameraMode.FIRST_PERSON);
                                 ctx.getSource().sendFeedback(
-                                    Text.literal("§b[SpecCam]§r Mode: First Person"));
+                                    Text.literal("§b[SpectaCam]§r Mode: First Person"));
                                 return 1;
                             })
                         )
                         .then(ClientCommandManager.literal("third")
                             .executes(ctx -> {
-                                SpecCam.cameraController.setMode(CameraMode.THIRD_PERSON);
+                                SpectaCam.cameraController.setMode(CameraMode.THIRD_PERSON);
                                 ctx.getSource().sendFeedback(
-                                    Text.literal("§b[SpecCam]§r Mode: Third Person"));
+                                    Text.literal("§b[SpectaCam]§r Mode: Third Person"));
                                 return 1;
                             })
                         )
                         .then(ClientCommandManager.literal("orbit")
                             .executes(ctx -> {
-                                SpecCam.cameraController.setMode(CameraMode.ORBIT);
+                                SpectaCam.cameraController.setMode(CameraMode.ORBIT);
                                 ctx.getSource().sendFeedback(
-                                    Text.literal("§b[SpecCam]§r Mode: Orbit / Fly-Around"));
+                                    Text.literal("§b[SpectaCam]§r Mode: Orbit / Fly-Around"));
                                 return 1;
                             })
                         )
@@ -128,26 +128,26 @@ public class SpecCamCommand {
                     .then(ClientCommandManager.literal("zoom")
                         .then(ClientCommandManager.literal("in")
                             .executes(ctx -> {
-                                SpecCam.cameraController.adjustZoom(-1f);
+                                SpectaCam.cameraController.adjustZoom(-1f);
                                 return 1;
                             })
                             .then(ClientCommandManager.argument("amount", FloatArgumentType.floatArg(0.1f, 20f))
                                 .executes(ctx -> {
                                     float amt = FloatArgumentType.getFloat(ctx, "amount");
-                                    SpecCam.cameraController.adjustZoom(-amt);
+                                    SpectaCam.cameraController.adjustZoom(-amt);
                                     return 1;
                                 })
                             )
                         )
                         .then(ClientCommandManager.literal("out")
                             .executes(ctx -> {
-                                SpecCam.cameraController.adjustZoom(1f);
+                                SpectaCam.cameraController.adjustZoom(1f);
                                 return 1;
                             })
                             .then(ClientCommandManager.argument("amount", FloatArgumentType.floatArg(0.1f, 20f))
                                 .executes(ctx -> {
                                     float amt = FloatArgumentType.getFloat(ctx, "amount");
-                                    SpecCam.cameraController.adjustZoom(amt);
+                                    SpectaCam.cameraController.adjustZoom(amt);
                                     return 1;
                                 })
                             )
@@ -157,12 +157,12 @@ public class SpecCamCommand {
                     // ── /spectacam status ────────────────────────────────────
                     .then(ClientCommandManager.literal("status")
                         .executes(ctx -> {
-                            boolean active = SpecCam.cameraController.isActive();
-                            String target = SpecCam.cameraController.getTargetName();
-                            String mode   = SpecCam.cameraController.getMode().getDisplayName();
-                            float  radius = SpecCam.cameraController.getOrbitRadius();
+                            boolean active = SpectaCam.cameraController.isActive();
+                            String target = SpectaCam.cameraController.getTargetName();
+                            String mode   = SpectaCam.cameraController.getMode().getDisplayName();
+                            float  radius = SpectaCam.cameraController.getOrbitRadius();
                             ctx.getSource().sendFeedback(Text.literal(
-                                "§b[SpecCam Status]§r\n" +
+                                "§b[SpectaCam Status]§r\n" +
                                 "  Active : " + active + "\n" +
                                 "  Target : " + (target != null ? target : "none") + "\n" +
                                 "  Mode   : " + mode + "\n" +
@@ -176,9 +176,9 @@ public class SpecCamCommand {
                     .then(ClientCommandManager.literal("config")
                         .then(ClientCommandManager.literal("save")
                             .executes(ctx -> {
-                                SpecCamConfig.save();
+                                SpectaCamConfig.save();
                                 ctx.getSource().sendFeedback(
-                                    Text.literal("§b[SpecCam]§r Config saved."));
+                                    Text.literal("§b[SpectaCam]§r Config saved."));
                                 return 1;
                             })
                         )

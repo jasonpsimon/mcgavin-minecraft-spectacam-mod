@@ -3,7 +3,7 @@ package net.reseraph.spectacam.config;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
-import net.reseraph.spectacam.SpecCam;
+import net.reseraph.spectacam.SpectaCam;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -15,15 +15,15 @@ import java.nio.file.Path;
  * Flat JSON config stored at .minecraft/config/spectacam.json.
  *
  * All fields are public so Gson can serialize/deserialize them directly.
- * Call SpecCamConfig.get() anywhere to read the current instance.
+ * Call SpectaCamConfig.get() anywhere to read the current instance.
  */
-public class SpecCamConfig {
+public class SpectaCamConfig {
 
     private static final Gson   GSON        = new GsonBuilder().setPrettyPrinting().create();
     private static final Path   CONFIG_PATH = FabricLoader.getInstance()
                                                            .getConfigDir()
                                                            .resolve("spectacam.json");
-    private static SpecCamConfig INSTANCE = new SpecCamConfig();
+    private static SpectaCamConfig INSTANCE = new SpectaCamConfig();
 
     // ─── Config fields ────────────────────────────────────────────────────────
 
@@ -114,18 +114,18 @@ public class SpecCamConfig {
 
     // ─── Static API ──────────────────────────────────────────────────────────
 
-    public static SpecCamConfig get() {
+    public static SpectaCamConfig get() {
         return INSTANCE;
     }
 
     public static void load() {
         if (Files.exists(CONFIG_PATH)) {
             try (Reader r = Files.newBufferedReader(CONFIG_PATH)) {
-                SpecCamConfig loaded = GSON.fromJson(r, SpecCamConfig.class);
+                SpectaCamConfig loaded = GSON.fromJson(r, SpectaCamConfig.class);
                 if (loaded != null) INSTANCE = loaded;
             } catch (IOException e) {
-                SpecCam.LOGGER.warn("[SpecCam] Failed to read config, using defaults: {}", e.getMessage());
-                INSTANCE = new SpecCamConfig();
+                SpectaCam.LOGGER.warn("[SpectaCam] Failed to read config, using defaults: {}", e.getMessage());
+                INSTANCE = new SpectaCamConfig();
             }
         }
         save(); // write defaults / fill any missing fields
@@ -135,7 +135,7 @@ public class SpecCamConfig {
         try (Writer w = Files.newBufferedWriter(CONFIG_PATH)) {
             GSON.toJson(INSTANCE, w);
         } catch (IOException e) {
-            SpecCam.LOGGER.warn("[SpecCam] Failed to save config: {}", e.getMessage());
+            SpectaCam.LOGGER.warn("[SpectaCam] Failed to save config: {}", e.getMessage());
         }
     }
 }

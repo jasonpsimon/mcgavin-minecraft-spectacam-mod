@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "spectacam",
   "version": "${version}",
-  "name": "SpecCam",
+  "name": "SpectaCam",
   "description": "Spectator camera mod — lock onto a player with first-person, third-person, orbit, and creative idle modes.",
   "authors": [
     "Reseraph"
@@ -12,7 +12,7 @@
   "environment": "client",
   "entrypoints": {
     "client": [
-      "net.reseraph.spectacam.SpecCam"
+      "net.reseraph.spectacam.SpectaCam"
     ]
   },
   "mixins": [
