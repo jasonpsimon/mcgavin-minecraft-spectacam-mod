@@ -26,9 +26,15 @@ dependencies {
 }
 
 processResources {
+    def mcCompat = "~${project.minecraft_version.replaceAll(/\.[0-9]+$/, '')}"
+    def javaMajor = project.findProperty('deps.java') ?: '21'
     inputs.property "version", project.version
+    inputs.property "mc_compat", mcCompat
+    inputs.property "java_major", javaMajor
     filesMatching("fabric.mod.json") {
-        expand "version": project.version
+        expand "version": project.version,
+               "mc_compat": mcCompat,
+               "java_major": javaMajor
     }
 }
 
