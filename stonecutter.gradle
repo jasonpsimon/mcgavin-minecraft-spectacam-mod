@@ -4,7 +4,5 @@ plugins {
 
 stonecutter.active "1.21.4" /* [SC] DO NOT EDIT */
 
-stonecutter.registerChiseled tasks.register("chiseledBuild", stonecutter.chiseled) { 
-    setGroup "project"
-    ofTask "build"
-}
+// Stonecutter 0.7+ auto-registers a `chiseledBuild` task that builds every
+// version — no explicit registration needed.

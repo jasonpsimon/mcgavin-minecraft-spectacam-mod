@@ -16,13 +16,25 @@ repositories {
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    // MC 26.x ships unobfuscated jars — no mappings declaration. The
+    // fabric.loom.disableObfuscation=true flag in the per-version
+    // gradle.properties tells Loom to skip mapping resolution entirely.
+    // Side effect: Loom does NOT create mod* configurations in this mode
+    // (RemapConfigurations.setupForSourceSet returns early), so we must
+    // use plain `implementation` for loader/fabric-api on unobfuscated
+    // builds. That's fine — no remap is needed since names are already final.
     if (project.mappings_source == 'mojmaps') {
         mappings loom.officialMojangMappings()
+        modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+        modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    } else if (project.mappings_source == 'unobfuscated') {
+        implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+        implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     } else {
         mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+        modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+        modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     }
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 }
 
 processResources {
@@ -38,22 +50,22 @@ processResources {
     }
 }
 
-def javaVersion = JavaVersion.toVersion(project.findProperty('deps.java') ?: '21')
+def javaMajor = (project.findProperty('deps.java') ?: '21').toInteger()
+def javaVersion = JavaVersion.toVersion(javaMajor)
 
 tasks.withType(JavaCompile).configureEach {
-    it.options.release = javaVersion.majorVersion.toInteger()
+    it.options.release = javaMajor
 }
 
 java {
     withSourcesJar()
-    //? if >=26 {
-    /*toolchain {
-        languageVersion = JavaLanguageVersion.of(javaVersion.majorVersion.toInteger())
-    }*/
-    //?} else {
-    sourceCompatibility = javaVersion
-    targetCompatibility = javaVersion
-    //?}
+    // Use toolchain for every version so Foojay auto-provisions the correct JDK
+    // per-target (JDK 21 for MC <=1.21.x, JDK 25 for MC 26.x). This sidesteps
+    // the fact that Stonecutter's `//? if >=26` preprocessor directives don't
+    // apply per-version inside a shared centralScript build.gradle.
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaMajor)
+    }
 }
 
 jar {

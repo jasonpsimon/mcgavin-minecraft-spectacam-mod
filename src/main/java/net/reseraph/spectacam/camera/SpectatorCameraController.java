@@ -1,10 +1,18 @@
 package net.reseraph.spectacam.camera;
 
+//? if >=26 {
+/*import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.GameType;*/
+//?} else {
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
+//?}
 import net.reseraph.spectacam.SpectaCam;
 import net.reseraph.spectacam.config.SpectaCamConfig;
 
@@ -34,11 +42,32 @@ import net.reseraph.spectacam.config.SpectaCamConfig;
  *     located the target at least once, OR idle mode has been seeded.
  *   - No more snap on target reacquire: smooth state is preserved, transition
  *     ramp provides the rubbery return.
+ *
+ * MC 26.x yarn→mojmap rename map (applied via stonecutter gates):
+ *   MinecraftClient              → Minecraft
+ *   ClientPlayNetworkHandler     → ClientPacketListener
+ *   PlayerEntity                 → Player
+ *   Vec3d                        → Vec3             (pkg: world.phys)
+ *   GameMode                     → GameType          (pkg: world.level)
+ *   client.world                 → client.level
+ *   client.getNetworkHandler()   → client.getConnection()
+ *   client.interactionManager    → client.gameMode
+ *   im.getCurrentGameMode()      → gm.getPlayerMode()
+ *   world.getPlayers()           → level.players()
+ *   p.getCameraPosVec(tick)      → p.getEyePosition(tick)
+ *   p.getPitch()                 → p.getXRot()
+ *   p.getYaw()                   → p.getYRot()
+ *   nh.sendChatCommand(s)        → nh.sendCommand(s)
+ *   player.sendMessage(t, true)  → player.sendOverlayMessage(Component)
  */
 public class SpectatorCameraController {
 
     // ── Public state read by CameraMixin ─────────────────────────────────────
+    //? if >=26 {
+    /*public Vec3   cameraPos      = Vec3.ZERO;*/
+    //?} else {
     public Vec3d   cameraPos      = Vec3d.ZERO;
+    //?}
     public float   cameraPitch    = 0f;
     public float   cameraYaw      = 0f;
     public boolean overrideCamera = false;
@@ -49,12 +78,20 @@ public class SpectatorCameraController {
     // camera sits frozen while the target keeps moving via vanilla's entity
     // interpolation, producing visible judder. CameraMixin lerps prev → curr
     // per frame using the render tickDelta to eliminate that gap.
+    //? if >=26 {
+    /*public Vec3 prevCameraPos   = Vec3.ZERO;*/
+    //?} else {
     public Vec3d prevCameraPos   = Vec3d.ZERO;
+    //?}
     public float prevCameraPitch = 0f;
     public float prevCameraYaw   = 0f;
 
     // ── Smoothed (interpolated) state ─────────────────────────────────────────
+    //? if >=26 {
+    /*private Vec3  smoothPos    = Vec3.ZERO;*/
+    //?} else {
     private Vec3d  smoothPos   = Vec3d.ZERO;
+    //?}
     private float  smoothPitch = 0f;
     private float  smoothYaw   = 0f;
     private boolean smoothInitialized = false;
@@ -107,7 +144,11 @@ public class SpectatorCameraController {
     private String pendingSpectateName  = null;
 
     /** The live player entity we're tracking. null when lost/dead. */
+    //? if >=26 {
+    /*private Player cachedTarget = null;*/
+    //?} else {
     private PlayerEntity cachedTarget = null;
+    //?}
 
     public SpectatorCameraController() {
         SpectaCamConfig cfg = SpectaCamConfig.get();
@@ -119,7 +160,11 @@ public class SpectatorCameraController {
     // Tick — called by ClientTickEvent
     // ─────────────────────────────────────────────────────────────────────────
 
+    //? if >=26 {
+    /*public void tick(Minecraft client) {*/
+    //?} else {
     public void tick(MinecraftClient client) {
+    //?}
         // Process deferred /spectate dispatch regardless of active state so it
         // still fires even if someone /spectacam stops mid-delay. (It won't,
         // because setTarget(null) clears the pending name, but defensive.)
@@ -131,7 +176,11 @@ public class SpectatorCameraController {
             }
         }
 
+        //? if >=26 {
+        /*if (!active || targetName == null || client.level == null) {*/
+        //?} else {
         if (!active || targetName == null || client.world == null) {
+        //?}
             overrideCamera = false;
             return;
         }
@@ -145,14 +194,26 @@ public class SpectatorCameraController {
         checkTicker++;
         if (cachedTarget == null && checkTicker >= CHECK_INTERVAL) {
             checkTicker = 0;
+            //? if >=26 {
+            /*cachedTarget = client.level.players().stream()
+                    .filter(p -> p.getName().getString().equalsIgnoreCase(targetName))
+                    .filter(p -> p.isAlive() && !p.isRemoved())
+                    .map(p -> (Player) p)
+                    .findFirst().orElse(null);*/
+            //?} else {
             cachedTarget = client.world.getPlayers().stream()
                     .filter(p -> p.getName().getString().equalsIgnoreCase(targetName))
                     .filter(p -> p.isAlive() && !p.isRemoved())
                     .findFirst().orElse(null);
+            //?}
         }
 
         // ── Step 2: Compute raw target position based on state ───────────────
+        //? if >=26 {
+        /*Vec3 targetPos;*/
+        //?} else {
         Vec3d targetPos;
+        //?}
         float targetPitch;
         float targetYaw;
 
@@ -163,10 +224,17 @@ public class SpectatorCameraController {
             if (!everLocated) {
                 // First-ever acquisition: seed smooth state AT the target so we
                 // don't lerp from Vec3d.ZERO into the world.
+                //? if >=26 {
+                /*Vec3 tp       = cachedTarget.getEyePosition(1.0f);
+                smoothPos     = tp;
+                smoothPitch   = cachedTarget.getXRot();
+                smoothYaw     = cachedTarget.getYRot();*/
+                //?} else {
                 Vec3d tp      = cachedTarget.getCameraPosVec(1.0f);
                 smoothPos     = tp;
                 smoothPitch   = cachedTarget.getPitch();
                 smoothYaw     = cachedTarget.getYaw();
+                //?}
                 smoothInitialized = true;
                 everLocated   = true;
                 sendHUD(client, "§aAttached to §e" + targetName);
@@ -187,13 +255,23 @@ public class SpectatorCameraController {
             SpectaCamConfig cfg = SpectaCamConfig.get();
             switch (mode) {
                 case FIRST_PERSON -> {
+                    //? if >=26 {
+                    /*targetPos   = cachedTarget.getEyePosition(1.0f);
+                    targetPitch = cachedTarget.getXRot();
+                    targetYaw   = cachedTarget.getYRot();*/
+                    //?} else {
                     targetPos   = cachedTarget.getCameraPosVec(1.0f);
                     targetPitch = cachedTarget.getPitch();
                     targetYaw   = cachedTarget.getYaw();
+                    //?}
                 }
                 case THIRD_PERSON -> {
                     float[] tp = computeThirdPerson(cachedTarget);
+                    //? if >=26 {
+                    /*targetPos   = new Vec3(tp[0], tp[1], tp[2]);*/
+                    //?} else {
                     targetPos   = new Vec3d(tp[0], tp[1], tp[2]);
+                    //?}
                     targetYaw   = tp[3];
                     targetPitch = tp[4];
                 }
@@ -216,6 +294,16 @@ public class SpectatorCameraController {
 
             if (missingTickCount == IDLE_GRACE_TICKS) {
                 // Seed idle at an appropriate world position.
+                //? if >=26 {
+                /*Vec3 seed;
+                if (everLocated) {
+                    seed = cameraPos;
+                } else if (client.player != null) {
+                    seed = client.player.getEyePosition(1.0f);
+                } else {
+                    seed = Vec3.ZERO;
+                }*/
+                //?} else {
                 Vec3d seed;
                 if (everLocated) {
                     seed = cameraPos;
@@ -224,14 +312,20 @@ public class SpectatorCameraController {
                 } else {
                     seed = Vec3d.ZERO;
                 }
+                //?}
                 idle.initAt(seed);
 
                 // Ensure smooth state has a sensible starting point if we've
                 // never published a camera position yet.
                 if (!smoothInitialized) {
                     smoothPos   = seed;
+                    //? if >=26 {
+                    /*smoothPitch = client.player != null ? client.player.getXRot() : 0f;
+                    smoothYaw   = client.player != null ? client.player.getYRot() : 0f;*/
+                    //?} else {
                     smoothPitch = client.player != null ? client.player.getPitch() : 0f;
                     smoothYaw   = client.player != null ? client.player.getYaw()   : 0f;
+                    //?}
                     smoothInitialized = true;
                 }
 
@@ -323,6 +417,20 @@ public class SpectatorCameraController {
     // ─────────────────────────────────────────────────────────────────────────
 
     /** Returns [x, y, z, yaw, pitch] */
+    //? if >=26 {
+    /*private float[] computeThirdPerson(Player target) {
+        Vec3 eye   = target.getEyePosition(1.0f);
+        float tyaw = target.getYRot();
+
+        double rad = Math.toRadians(tyaw);
+        double dx  = -Math.sin(rad) * thirdPersonDistance;
+        double dz  =  Math.cos(rad) * thirdPersonDistance;
+        double dy  =  thirdPersonDistance * 0.4;
+
+        Vec3 pos = eye.add(dx, dy, dz);
+        return new float[]{ (float)pos.x, (float)pos.y, (float)pos.z, tyaw + 180f, 18f };
+    }*/
+    //?} else {
     private float[] computeThirdPerson(PlayerEntity target) {
         Vec3d eye  = target.getCameraPosVec(1.0f);
         float tyaw = target.getYaw();
@@ -335,11 +443,21 @@ public class SpectatorCameraController {
         Vec3d pos = eye.add(dx, dy, dz);
         return new float[]{ (float)pos.x, (float)pos.y, (float)pos.z, tyaw + 180f, 18f };
     }
+    //?}
 
     // ─────────────────────────────────────────────────────────────────────────
     // Interpolation helpers
     // ─────────────────────────────────────────────────────────────────────────
 
+    //? if >=26 {
+    /*private Vec3 lerpVec(Vec3 from, Vec3 to, float t) {
+        return new Vec3(
+            from.x + (to.x - from.x) * t,
+            from.y + (to.y - from.y) * t,
+            from.z + (to.z - from.z) * t
+        );
+    }*/
+    //?} else {
     private Vec3d lerpVec(Vec3d from, Vec3d to, float t) {
         return new Vec3d(
             from.x + (to.x - from.x) * t,
@@ -347,6 +465,7 @@ public class SpectatorCameraController {
             from.z + (to.z - from.z) * t
         );
     }
+    //?}
 
     /** Lerp that takes the shortest path around the 360° circle. */
     private float lerpAngle(float from, float to, float t) {
@@ -367,14 +486,42 @@ public class SpectatorCameraController {
      * Finally sets the camera target so the controller begins tracking.
      */
     public void startSpectating(String name) {
+        //? if >=26 {
+        /*Minecraft client = Minecraft.getInstance();*/
+        //?} else {
         MinecraftClient client = MinecraftClient.getInstance();
+        //?}
         setTarget(name);
 
+        //? if >=26 {
+        /*if (client == null || client.getConnection() == null || client.player == null) {
+            return;
+        }*/
+        //?} else {
         if (client == null || client.getNetworkHandler() == null || client.player == null) {
             return;
         }
+        //?}
 
         // Step 1 — ensure we're in spectator mode. Server decides if we have perms.
+        //? if >=26 {
+        /*GameType gm = (client.gameMode != null)
+                ? client.gameMode.getPlayerMode()
+                : null;
+        if (gm != GameType.SPECTATOR) {
+            try {
+                client.getConnection().sendCommand("gamemode spectator");
+                sendHUD(client, "§7requested spectator mode…");
+            } catch (Exception e) {
+                SpectaCam.LOGGER.warn("[SpectaCam] /gamemode dispatch failed: {}", e.getMessage());
+                sendHUD(client, "§cserver refused /gamemode — need OP?");
+            }
+            pendingSpectateName  = name;
+            pendingSpectateTicks = 5;
+        } else {
+            dispatchSpectateCommand(client, name);
+        }*/
+        //?} else {
         GameMode gm = (client.interactionManager != null)
                 ? client.interactionManager.getCurrentGameMode()
                 : null;
@@ -400,9 +547,22 @@ public class SpectatorCameraController {
             // Already in spectator — dispatch /spectate immediately.
             dispatchSpectateCommand(client, name);
         }
+        //?}
     }
 
     /** Fire a /spectate <name> chat command. No-op if disconnected. */
+    //? if >=26 {
+    /*private void dispatchSpectateCommand(Minecraft client, String name) {
+        if (client == null) return;
+        ClientPacketListener nh = client.getConnection();
+        if (nh == null || client.player == null || name == null) return;
+        try {
+            nh.sendCommand("spectate " + name);
+        } catch (Exception e) {
+            SpectaCam.LOGGER.warn("[SpectaCam] /spectate dispatch failed: {}", e.getMessage());
+        }
+    }*/
+    //?} else {
     private void dispatchSpectateCommand(MinecraftClient client, String name) {
         if (client == null) return;
         ClientPlayNetworkHandler nh = client.getNetworkHandler();
@@ -419,8 +579,18 @@ public class SpectatorCameraController {
             SpectaCam.LOGGER.warn("[SpectaCam] /spectate dispatch failed: {}", e.getMessage());
         }
     }
+    //?}
 
     /** Count a re-attach attempt and fire /spectate. */
+    //? if >=26 {
+    /*private void attemptReAttach(Minecraft client) {
+        if (targetName == null) return;
+        reattachAttempts++;
+        SpectaCam.LOGGER.info("[SpectaCam] re-attach attempt #{} → /spectate {}",
+                reattachAttempts, targetName);
+        dispatchSpectateCommand(client, targetName);
+    }*/
+    //?} else {
     private void attemptReAttach(MinecraftClient client) {
         if (targetName == null) return;
         reattachAttempts++;
@@ -428,17 +598,27 @@ public class SpectatorCameraController {
                 reattachAttempts, targetName);
         dispatchSpectateCommand(client, targetName);
     }
+    //?}
 
     // ─────────────────────────────────────────────────────────────────────────
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
 
+    //? if >=26 {
+    /*private void sendHUD(Minecraft client, String msg) {
+        if (client != null && client.player != null) {
+            client.player.sendOverlayMessage(
+                net.reseraph.spectacam.util.SpectaCamText.lit("§b[SpectaCam]§r " + msg));
+        }
+    }*/
+    //?} else {
     private void sendHUD(MinecraftClient client, String msg) {
         if (client != null && client.player != null) {
             client.player.sendMessage(
                 net.reseraph.spectacam.util.SpectaCamText.lit("§b[SpectaCam]§r " + msg), true);
         }
     }
+    //?}
 
     // ─────────────────────────────────────────────────────────────────────────
     // Public controls

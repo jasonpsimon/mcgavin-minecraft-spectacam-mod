@@ -1,6 +1,10 @@
 package net.reseraph.spectacam.camera;
 
+//? if >=26 {
+/*import net.minecraft.world.phys.Vec3;*/
+//?} else {
 import net.minecraft.util.math.Vec3d;
+//?}
 import net.reseraph.spectacam.config.SpectaCamConfig;
 
 import java.util.Random;
@@ -9,6 +13,11 @@ import java.util.Random;
  * A slow, non-linear fly-around camera for when the target is offline or dead.
  * Pans in a generally consistent direction, changing randomly at intervals.
  * Gently undulates pitch over time.
+ *
+ * MC 26.x renamed {@code net.minecraft.util.math.Vec3d} →
+ * {@code net.minecraft.world.phys.Vec3}. We use a local type alias via
+ * conditional imports + a {@code Vec} typedef-like wrapper is not possible
+ * in Java, so the references are stonecutter-gated at their use sites.
  */
 public class IdleCameraController {
 
@@ -16,7 +25,11 @@ public class IdleCameraController {
 
     // Heights and speeds are read from config each tick so they're always current
 
+    //? if >=26 {
+    /*private Vec3 pos;*/
+    //?} else {
     private Vec3d pos;
+    //?}
     private float yaw = 0f;
     private float targetYaw = 0f;
     private float pitch = 25f;
@@ -38,7 +51,11 @@ public class IdleCameraController {
      * transition-smoothing ramp produces a soft rubbery "rise" rather than
      * an instant elevator jump when the target is lost.
      */
+    //? if >=26 {
+    /*public void initAt(Vec3 worldPos) {*/
+    //?} else {
     public void initAt(Vec3d worldPos) {
+    //?}
         if (!initialized) {
             pos = worldPos;
             initialized = true;
@@ -47,7 +64,11 @@ public class IdleCameraController {
 
     public void tick() {
         if (!initialized) {
+            //? if >=26 {
+            /*pos = new Vec3(0, SpectaCamConfig.get().idleHeightMin, 0);*/
+            //?} else {
             pos = new Vec3d(0, SpectaCamConfig.get().idleHeightMin, 0);
+            //?}
             initialized = true;
         }
 
@@ -92,7 +113,11 @@ public class IdleCameraController {
         double heightOffset = Math.sin(System.currentTimeMillis() * 0.0003) * cfg.idleHeightOscillation;
         double targetY = heightMin + (heightMax - heightMin) * 0.5 + heightOffset;
         double newY = pos.y + (targetY - pos.y) * 0.005;
+        //? if >=26 {
+        /*pos = new Vec3(pos.x, newY, pos.z);*/
+        //?} else {
         pos = new Vec3d(pos.x, newY, pos.z);
+        //?}
 
         // Gently undulate pitch (look slightly up and down over time)
         pitch = cfg.idlePitchBase + (float)(Math.sin(System.currentTimeMillis() * 0.0005) * cfg.idlePitchOscillation);
@@ -117,7 +142,11 @@ public class IdleCameraController {
         return angle;
     }
 
+    //? if >=26 {
+    /*public Vec3  getPos()   { return pos; }*/
+    //?} else {
     public Vec3d getPos()   { return pos; }
+    //?}
     public float getPitch() { return pitch; }
     public float getYaw()   { return yaw; }
 }

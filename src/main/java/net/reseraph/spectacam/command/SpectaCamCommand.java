@@ -4,7 +4,11 @@ import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 
-//? if >=1.19 {
+//? if >=26 {
+/*import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;*/
+//?} else if >=1.19 {
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
@@ -13,9 +17,19 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.command.v1.FabricClientCommandSource;*/
 //?}
 
+import com.mojang.brigadier.arguments.ArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+
+//? if >=26 {
+/*import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.commands.SharedSuggestionProvider;*/
+//?} else {
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.command.CommandSource;
+//?}
 import net.reseraph.spectacam.SpectaCam;
 import net.reseraph.spectacam.camera.CameraMode;
 import net.reseraph.spectacam.config.SpectaCamConfig;
@@ -36,14 +50,53 @@ import net.reseraph.spectacam.util.SpectaCamText;
  * Caveat on the shortened form: a player literally named stop/mode/zoom/
  * status/config would collide with the subcommand literals. In practice
  * nobody is. The legacy `/spectacam target &lt;name&gt;` form works for any name.
+ *
+ * MC 26.x (mojmap) renamed several APIs used here:
+ *   MinecraftClient            → Minecraft
+ *   PlayerListEntry            → PlayerInfo          (pkg: client.multiplayer)
+ *   CommandSource.suggestMatching → SharedSuggestionProvider.suggest
+ *   mc.getNetworkHandler()     → mc.getConnection()
+ *   nh.getPlayerList()         → nh.getOnlinePlayers()
+ *   GameProfile.getName()      → GameProfile.name()  (already gated via 1.21.11)
  */
 public class SpectaCamCommand {
+
+    // Fabric API renamed ClientCommandManager → ClientCommands in 26.x.
+    // These wrappers keep the command-tree builder readable at ~20 call sites.
+    private static LiteralArgumentBuilder<FabricClientCommandSource> lit(String name) {
+        //? if >=26 {
+        /*return ClientCommands.literal(name);*/
+        //?} else {
+        return ClientCommandManager.literal(name);
+        //?}
+    }
+
+    private static <T> RequiredArgumentBuilder<FabricClientCommandSource, T> arg(
+            String name, ArgumentType<T> type) {
+        //? if >=26 {
+        /*return ClientCommands.argument(name, type);*/
+        //?} else {
+        return ClientCommandManager.argument(name, type);
+        //?}
+    }
 
     /**
      * Tab-completes online player names from the client's player list.
      */
     private static final SuggestionProvider<FabricClientCommandSource> PLAYER_SUGGESTIONS =
         (ctx, builder) -> {
+            //? if >=26 {
+            /*Minecraft mc = Minecraft.getInstance();
+            if (mc != null && mc.getConnection() != null) {
+                java.util.List<String> names = mc.getConnection().getOnlinePlayers().stream()
+                        .map(PlayerInfo::getProfile)
+                        .filter(java.util.Objects::nonNull)
+                        .map(com.mojang.authlib.GameProfile::name)
+                        .filter(java.util.Objects::nonNull)
+                        .toList();
+                return SharedSuggestionProvider.suggest(names, builder);
+            }*/
+            //?} else {
             MinecraftClient mc = MinecraftClient.getInstance();
             if (mc != null && mc.getNetworkHandler() != null) {
                 java.util.List<String> names = mc.getNetworkHandler().getPlayerList().stream()
@@ -58,15 +111,16 @@ public class SpectaCamCommand {
                         .toList();
                 return CommandSource.suggestMatching(names, builder);
             }
+            //?}
             return builder.buildFuture();
         };
 
     public static void register() {
         var tree =
-            ClientCommandManager.literal("spectacam")
+            lit("spectacam")
 
                 // ── /spectacam <name> — preferred shortened form ─────────
-                .then(ClientCommandManager.argument("player", StringArgumentType.word())
+                .then(arg("player", StringArgumentType.word())
                     .suggests(PLAYER_SUGGESTIONS)
                     .executes(ctx -> {
                         String name = StringArgumentType.getString(ctx, "player");
@@ -78,8 +132,8 @@ public class SpectaCamCommand {
                 )
 
                 // ── /spectacam target <name> — legacy alias ──────────────
-                .then(ClientCommandManager.literal("target")
-                    .then(ClientCommandManager.argument("player", StringArgumentType.word())
+                .then(lit("target")
+                    .then(arg("player", StringArgumentType.word())
                         .suggests(PLAYER_SUGGESTIONS)
                         .executes(ctx -> {
                             String name = StringArgumentType.getString(ctx, "player");
@@ -92,7 +146,7 @@ public class SpectaCamCommand {
                 )
 
                 // ── /spectacam stop ──────────────────────────────────────
-                .then(ClientCommandManager.literal("stop")
+                .then(lit("stop")
                     .executes(ctx -> {
                         SpectaCam.cameraController.setTarget(null);
                         ctx.getSource().sendFeedback(
@@ -102,8 +156,8 @@ public class SpectaCamCommand {
                 )
 
                 // ── /spectacam mode first|third|orbit ────────────────────
-                .then(ClientCommandManager.literal("mode")
-                    .then(ClientCommandManager.literal("first")
+                .then(lit("mode")
+                    .then(lit("first")
                         .executes(ctx -> {
                             SpectaCam.cameraController.setMode(CameraMode.FIRST_PERSON);
                             ctx.getSource().sendFeedback(
@@ -111,7 +165,7 @@ public class SpectaCamCommand {
                             return 1;
                         })
                     )
-                    .then(ClientCommandManager.literal("third")
+                    .then(lit("third")
                         .executes(ctx -> {
                             SpectaCam.cameraController.setMode(CameraMode.THIRD_PERSON);
                             ctx.getSource().sendFeedback(
@@ -119,7 +173,7 @@ public class SpectaCamCommand {
                             return 1;
                         })
                     )
-                    .then(ClientCommandManager.literal("orbit")
+                    .then(lit("orbit")
                         .executes(ctx -> {
                             SpectaCam.cameraController.setMode(CameraMode.ORBIT);
                             ctx.getSource().sendFeedback(
@@ -130,13 +184,13 @@ public class SpectaCamCommand {
                 )
 
                 // ── /spectacam zoom in|out [amount] ──────────────────────
-                .then(ClientCommandManager.literal("zoom")
-                    .then(ClientCommandManager.literal("in")
+                .then(lit("zoom")
+                    .then(lit("in")
                         .executes(ctx -> {
                             SpectaCam.cameraController.adjustZoom(-1f);
                             return 1;
                         })
-                        .then(ClientCommandManager.argument("amount", FloatArgumentType.floatArg(0.1f, 20f))
+                        .then(arg("amount", FloatArgumentType.floatArg(0.1f, 20f))
                             .executes(ctx -> {
                                 float amt = FloatArgumentType.getFloat(ctx, "amount");
                                 SpectaCam.cameraController.adjustZoom(-amt);
@@ -144,12 +198,12 @@ public class SpectaCamCommand {
                             })
                         )
                     )
-                    .then(ClientCommandManager.literal("out")
+                    .then(lit("out")
                         .executes(ctx -> {
                             SpectaCam.cameraController.adjustZoom(1f);
                             return 1;
                         })
-                        .then(ClientCommandManager.argument("amount", FloatArgumentType.floatArg(0.1f, 20f))
+                        .then(arg("amount", FloatArgumentType.floatArg(0.1f, 20f))
                             .executes(ctx -> {
                                 float amt = FloatArgumentType.getFloat(ctx, "amount");
                                 SpectaCam.cameraController.adjustZoom(amt);
@@ -160,7 +214,7 @@ public class SpectaCamCommand {
                 )
 
                 // ── /spectacam status ────────────────────────────────────
-                .then(ClientCommandManager.literal("status")
+                .then(lit("status")
                     .executes(ctx -> {
                         boolean active = SpectaCam.cameraController.isActive();
                         String target = SpectaCam.cameraController.getTargetName();
@@ -178,8 +232,8 @@ public class SpectaCamCommand {
                 )
 
                 // ── /spectacam config save ───────────────────────────────
-                .then(ClientCommandManager.literal("config")
-                    .then(ClientCommandManager.literal("save")
+                .then(lit("config")
+                    .then(lit("save")
                         .executes(ctx -> {
                             SpectaCamConfig.save();
                             ctx.getSource().sendFeedback(
