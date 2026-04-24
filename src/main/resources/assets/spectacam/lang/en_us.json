@@ -1,0 +1,7 @@
+{
+  "key.spectacam.cycle_mode": "SpecCam: Cycle Camera Mode",
+  "key.spectacam.zoom_in":    "SpecCam: Zoom In",
+  "key.spectacam.zoom_out":   "SpecCam: Zoom Out",
+  "key.spectacam.clear_target": "SpecCam: Clear Target",
+  "category.spectacam": "SpecCam"
+}
