@@ -1,13 +1,14 @@
 plugins {
     id 'fabric-loom' version '1.9-SNAPSHOT'
+    id 'dev.kikugie.stonecutter'
     id 'maven-publish'
 }
 
-version = project.mod_version
+version = "${project.mod_version}+mc${stonecutter.current.version}"
 group = project.maven_group
 
 base {
-    archivesName = project.archives_base_name
+    archivesName = "${project.archives_base_name}-mc${stonecutter.current.version}"
 }
 
 repositories {
@@ -15,7 +16,11 @@ repositories {
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    if (project.mappings_source == 'mojmaps') {
+        mappings loom.officialMojangMappings()
+    } else {
+        mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    }
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 }
@@ -27,18 +32,20 @@ processResources {
     }
 }
 
+def javaVersion = JavaVersion.toVersion(project.findProperty('deps.java') ?: '21')
+
 tasks.withType(JavaCompile).configureEach {
-    it.options.release = 21
+    it.options.release = javaVersion.majorVersion.toInteger()
 }
 
 java {
     withSourcesJar()
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = javaVersion
+    targetCompatibility = javaVersion
 }
 
 jar {
-    from("LICENSE") {
+    from("${rootDir}/LICENSE") {
         rename { "${it}_${project.base.archivesName.get()}" }
     }
 }
