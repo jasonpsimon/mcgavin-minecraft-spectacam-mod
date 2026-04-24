@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version '1.9-SNAPSHOT'
+    id 'fabric-loom' version "${loom_version}"
     id 'dev.kikugie.stonecutter'
     id 'maven-publish'
 }
@@ -46,8 +46,14 @@ tasks.withType(JavaCompile).configureEach {
 
 java {
     withSourcesJar()
+    //? if >=26 {
+    /*toolchain {
+        languageVersion = JavaLanguageVersion.of(javaVersion.majorVersion.toInteger())
+    }*/
+    //?} else {
     sourceCompatibility = javaVersion
     targetCompatibility = javaVersion
+    //?}
 }
 
 jar {

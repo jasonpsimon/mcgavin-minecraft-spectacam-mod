@@ -9,12 +9,18 @@ pluginManagement {
 
 plugins {
     id 'dev.kikugie.stonecutter' version '0.5.2'
+    // Auto-provision JDK toolchains (e.g. JDK 25 required for MC 26.x)
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.10.0'
 }
 
 stonecutter {
     centralScript = 'build.gradle'
     shared {
-        versions '1.19.4', '1.20.1', '1.20.4', '1.20.6', '1.21.1', '1.21.4'
+        // NOTE: '26.1.2' temporarily excluded — Mojang stopped shipping client_mappings
+        // for 26.x, so loom.officialMojangMappings() fails. Config + source gates for
+        // 26.1.2 are kept in the tree (dormant) for a future release once the mapping
+        // source is resolved. See MEMORY.md.
+        versions '1.18.2', '1.19.2', '1.19.4', '1.20.1', '1.20.4', '1.20.6', '1.21.1', '1.21.4', '1.21.11'
         vcsVersion = '1.21.4'
     }
     create rootProject

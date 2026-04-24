@@ -380,7 +380,13 @@ public class SpectatorCameraController {
                 : null;
         if (gm != GameMode.SPECTATOR) {
             try {
+                //? if >=1.19.4 {
                 client.getNetworkHandler().sendChatCommand("gamemode spectator");
+                //?} else if (>=1.19) {
+                /*client.player.sendCommand("gamemode spectator");*/
+                //?} else {
+                /*client.player.sendChatMessage("/gamemode spectator");*/
+                //?}
                 sendHUD(client, "§7requested spectator mode…");
             } catch (Exception e) {
                 SpectaCam.LOGGER.warn("[SpectaCam] /gamemode dispatch failed: {}", e.getMessage());
@@ -402,7 +408,13 @@ public class SpectatorCameraController {
         ClientPlayNetworkHandler nh = client.getNetworkHandler();
         if (nh == null || client.player == null || name == null) return;
         try {
+            //? if >=1.19.4 {
             nh.sendChatCommand("spectate " + name);
+            //?} else if (>=1.19) {
+            /*client.player.sendCommand("spectate " + name);*/
+            //?} else {
+            /*client.player.sendChatMessage("/spectate " + name);*/
+            //?}
         } catch (Exception e) {
             SpectaCam.LOGGER.warn("[SpectaCam] /spectate dispatch failed: {}", e.getMessage());
         }
@@ -424,7 +436,7 @@ public class SpectatorCameraController {
     private void sendHUD(MinecraftClient client, String msg) {
         if (client != null && client.player != null) {
             client.player.sendMessage(
-                net.minecraft.text.Text.literal("§b[SpectaCam]§r " + msg), true);
+                net.reseraph.spectacam.util.SpectaCamText.lit("§b[SpectaCam]§r " + msg), true);
         }
     }
 

@@ -1,7 +1,12 @@
 package net.reseraph.spectacam.camera;
 
+//? if >=26 {
+/*import net.minecraft.world.entity.player.Player;*/
+/*import net.minecraft.world.phys.Vec3;*/
+//?} else {
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.Vec3d;
+//?}
 
 /**
  * Continuously orbits around the target player in a slow circle.
@@ -13,7 +18,11 @@ public class OrbitCameraController {
     private float radius;
     private final float height = 3.0f;
 
+    //? if >=26 {
+    /*private Vec3 pos = Vec3.ZERO;*/
+    //?} else {
     private Vec3d pos = Vec3d.ZERO;
+    //?}
     private float pitch = 15f;
     private float yaw = 0f;
 
@@ -27,17 +36,29 @@ public class OrbitCameraController {
      * @param target     The player being orbited.
      * @param orbitSpeed Degrees to advance per tick (from config).
      */
+    //? if >=26 {
+    /*public void tick(Player target, float orbitSpeed) {*/
+    //?} else {
     public void tick(PlayerEntity target, float orbitSpeed) {
+    //?}
         angle = (angle + orbitSpeed) % 360f;
 
-        Vec3d center = target.getPos().add(0, target.getHeight() * 0.5 + 0.5, 0);
+        //? if >=26 {
+        /*Vec3 center = new Vec3(target.getX(), target.getY() + target.getBbHeight() * 0.5 + 0.5, target.getZ());*/
+        //?} else {
+        Vec3d center = new Vec3d(target.getX(), target.getY() + target.getHeight() * 0.5 + 0.5, target.getZ());
+        //?}
 
         double rad = Math.toRadians(angle);
         double camX = center.x + Math.sin(rad) * radius;
         double camZ = center.z + Math.cos(rad) * radius;
         double camY = center.y + height;
 
+        //? if >=26 {
+        /*pos = new Vec3(camX, camY, camZ);*/
+        //?} else {
         pos = new Vec3d(camX, camY, camZ);
+        //?}
 
         // Compute yaw/pitch so the camera always faces the target center
         double dx = center.x - camX;
@@ -58,7 +79,11 @@ public class OrbitCameraController {
     }
 
     public float getRadius() { return radius; }
+    //? if >=26 {
+    /*public Vec3 getPos()    { return pos; }*/
+    //?} else {
     public Vec3d getPos()    { return pos; }
+    //?}
     public float getPitch()  { return pitch; }
     public float getYaw()    { return yaw; }
 }
